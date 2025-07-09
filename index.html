@@ -11,6 +11,19 @@
       margin: 2rem;
       max-width: 800px;
     }
+    header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 2rem;
+    }
+    header img {
+      height: 48px;
+      margin-right: 1rem;
+    }
+    h1 {
+      font-size: 1.8rem;
+      margin: 0;
+    }
     label {
       display: block;
       margin-top: 1rem;
@@ -36,7 +49,11 @@
   </style>
 </head>
 <body>
-  <h1>Basecamp Quote Generator</h1>
+  <header>
+    <img src="https://basecamp.com/assets/logos/basecamp-logo-2x-02c4f2b6d4c789c6fbb64606a5ffb6e7473d5a86594a173e4c48de45603a3b44.png" alt="Basecamp Logo">
+    <h1>Quote Generator</h1>
+  </header>
+
   <form id="quote-form">
     <label>Account Number <input type="text" id="accountNumber" required /></label>
     <label>Invoice Number <input type="text" id="invoiceNumber" readonly /></label>
@@ -57,7 +74,7 @@
     <div id="userCountField" class="hidden">
       <label>Number of Users <input type="number" id="userCount" min="1" value="1" /></label>
     </div>
-    <label>Price <input type="text" id="price" /></label>
+    <label>Price <input type="number" step="0.01" id="price" /></label>
     <label>Payment Instructions <textarea id="paymentInfo" rows="6" readonly></textarea></label>
     <button type="submit" class="button">Generate PDF</button>
   </form>
@@ -109,39 +126,76 @@
     }
 
     document.getElementById('quote-form').addEventListener('submit', async function (e) {
-      e.preventDefault();
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF();
+  e.preventDefault();
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  let y = 20;
 
-      const account = accountNumber.value;
-      const invoice = invoiceNumber.value;
-      const date = document.getElementById('date').value;
-      const due = document.getElementById('dueDate').value;
-      const name = document.getElementById('accountName').value;
-      const owner = document.getElementById('accountOwner').value;
-      const email = document.getElementById('email').value;
-      const planName = plan.options[plan.selectedIndex].text;
-      const priceVal = price.value;
-      const paymentText = paymentInfo.value;
+  const account = accountNumber.value;
+  const invoice = invoiceNumber.value;
+  const date = document.getElementById('date').value;
+  const due = document.getElementById('dueDate').value;
+  const name = document.getElementById('accountName').value;
+  const owner = document.getElementById('accountOwner').value;
+  const email = document.getElementById('email').value;
+  const planName = plan.options[plan.selectedIndex].text;
+  const priceVal = parseFloat(price.value);
+  const paymentText = paymentInfo.value;
 
-      doc.setFontSize(12);
-      doc.text(`Thanks for choosing ${planName}!`, 20, 20);
-      doc.text(`Invoice: ${invoice}    Account: ${account}`, 20, 30);
-      doc.text(`Date: ${date}    Account Name: ${name}`, 20, 40);
-      doc.text(`Due Date: ${due}    Account Owner: ${owner}`, 20, 50);
-      doc.text(`Email: ${email}`, 20, 60);
+  const logoData = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACgAAAAoCAYAAACM/rhtAAAACXBIWXMAAA7EAAAOxAGVKw4bAAABOklEQVR4nO2W0Q3DIAxFbf//H4IoWgRNsPLspZ6UguKnZk2fGE8l4QwxGgDYEMJYDFnAIZaNgx1FfVqxTrWx7k5iNiqRQ6RPoK9WJjrwXgCXYowu7AVoP1o6lsp+XEIOV7CeAp45IGWlSGECFd9EhTCwYxrhL1ZNUO2jhKJf8tihHBRR2JeXMT7SyA4ZzAqQeU9nysxyoZUv5ow3gRJQIVVQHdiJVwZldECrXEiW+gYUmh1DdL9lgnW3vYxqErBWr8W/dby2+S3XgYJArR0Qj1RgAAAABJRU5ErkJggg==';
 
-      doc.setFontSize(16);
-      doc.text(`$${parseFloat(priceVal).toFixed(2)} USD`, 20, 75);
-      doc.setFontSize(12);
-      doc.text(`${planName}`, 20, 85);
-      doc.text(`- Includes unlimited users and projects.`, 20, 95);
+  doc.addImage(logoData, 'PNG', 20, y, 40, 16);
+  y += 24;
 
-      const lines = doc.splitTextToSize(paymentText, 170);
-      doc.text(lines, 20, 110);
+  const headerYStart = y;
+  doc.setFontSize(14);
+  doc.text("Thanks for choosing Basecamp!", 20, y); y += 12;
 
-      doc.save(`Basecamp_Quote_${invoice}.pdf`);
-    });
-  </script>
+  doc.setFontSize(12);
+  doc.text(`Invoice: ${invoice}    Account: ${account}`, 20, y); y += 10;
+  doc.text(`Date: ${date}    Account Name: ${name}`, 20, y); y += 10;
+  doc.text(`Due Date: ${due}    Account Owner: ${owner}`, 20, y); y += 10;
+  doc.text(`Email: ${email}`, 20, y); y += 10;
+  const headerYEnd = y;
+  doc.roundedRect(18, headerYStart - 6, 174, headerYEnd - headerYStart + 16, 3, 3);
+  y += 10;
+
+  const priceBoxYStart = y - 6;
+  const priceLines = [
+    `$${isNaN(priceVal) ? '___' : priceVal.toFixed(2)} USD`,
+    planName,
+    '- Includes unlimited users and projects.'
+  ];
+  const lineHeight = 8;
+  const boxHeight = priceLines.length * lineHeight + 12;
+  doc.setDrawColor(0);
+  doc.setFillColor(248, 248, 248);
+  doc.roundedRect(18, priceBoxYStart, 174, boxHeight, 3, 3, 'F');
+  doc.setFontSize(16);
+  doc.setFont(undefined, 'bold');
+  doc.text(priceLines[0], 105, y + lineHeight, { align: 'center' });
+  doc.setFontSize(12);
+  doc.setFont(undefined, 'normal');
+  doc.text(priceLines[1], 105, y + lineHeight * 2, { align: 'center' });
+  doc.text(priceLines[2], 105, y + lineHeight * 3, { align: 'center' });
+  y += boxHeight + 6;
+  doc.setFont(undefined, 'normal');
+  doc.setFontSize(12);
+  doc.text(planName, 105, y, { align: 'center' }); y += 10;
+  doc.text(`- Includes unlimited users and projects.`, 105, y, { align: 'center' }); y += 10;
+  const priceBoxYEnd = y + 4;
+  doc.roundedRect(18, priceBoxYStart, 174, priceBoxYEnd - priceBoxYStart, 3, 3);
+  y += 10;
+
+  const lines = doc.splitTextToSize(paymentText, 170);
+  const payBoxHeight = lines.length * 7 + 16;
+  doc.setDrawColor(0);
+  doc.setFillColor(248, 248, 248);
+  doc.roundedRect(18, y - 6, 174, payBoxHeight, 3, 3, 'F');
+  doc.text(lines, 20, y);
+
+  doc.save(`Basecamp_Quote_${invoice}.pdf`);
+});
+</script>
 </body>
 </html>
