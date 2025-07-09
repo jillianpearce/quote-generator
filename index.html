@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Basecamp Quote Generator</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" />
+  <style>
+    body {
+      font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      margin: 2rem;
+      max-width: 800px;
+    }
+    label {
+      display: block;
+      margin-top: 1rem;
+      font-weight: bold;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 0.5rem;
+      margin-top: 0.25rem;
+      font-size: 1rem;
+    }
+    .hidden {
+      display: none;
+    }
+    .button {
+      margin-top: 2rem;
+      padding: 0.75rem 1.5rem;
+      font-size: 1rem;
+    }
+    #pdf-output {
+      margin-top: 2rem;
+    }
+  </style>
+</head>
+<body>
+  <h1>Basecamp Quote Generator</h1>
+  <form id="quote-form">
+    <label>Account Number <input type="text" id="accountNumber" required /></label>
+    <label>Invoice Number <input type="text" id="invoiceNumber" readonly /></label>
+    <label>Date <input type="text" id="date" /></label>
+    <label>Due Date <input type="text" id="dueDate" /></label>
+    <label>Account Name <input type="text" id="accountName" /></label>
+    <label>Account Owner <input type="text" id="accountOwner" /></label>
+    <label>Email <input type="email" id="email" /></label>
+    <label>Plan
+      <select id="plan">
+        <option value="proYearly">Basecamp Pro Unlimited Yearly</option>
+        <option value="proMonthly">Basecamp Pro Unlimited Monthly</option>
+        <option value="plusMonthly">Basecamp Plus Monthly</option>
+        <option value="lumpSum">Lump Sum Deposit</option>
+        <option value="ach">ACH Invoice</option>
+      </select>
+    </label>
+    <div id="userCountField" class="hidden">
+      <label>Number of Users <input type="number" id="userCount" min="1" value="1" /></label>
+    </div>
+    <label>Price <input type="text" id="price" /></label>
+    <label>Payment Instructions <textarea id="paymentInfo" rows="6" readonly></textarea></label>
+    <button type="submit" class="button">Generate PDF</button>
+  </form>
+
+  <div id="pdf-output"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script>
+    flatpickr("#date", { defaultDate: new Date() });
+    flatpickr("#dueDate");
+
+    const accountNumber = document.getElementById('accountNumber');
+    const invoiceNumber = document.getElementById('invoiceNumber');
+    const plan = document.getElementById('plan');
+    const userCountField = document.getElementById('userCountField');
+    const userCount = document.getElementById('userCount');
+    const price = document.getElementById('price');
+    const paymentInfo = document.getElementById('paymentInfo');
+
+    accountNumber.addEventListener('input', () => {
+      invoiceNumber.value = accountNumber.value ? `${accountNumber.value}-25` : '';
+    });
+
+    plan.addEventListener('change', updateFields);
+    userCount.addEventListener('input', updateFields);
+
+    function updateFields() {
+      const selectedPlan = plan.value;
+      userCountField.classList.toggle('hidden', selectedPlan !== 'plusMonthly');
+
+      if (selectedPlan === 'proYearly') {
+        price.value = '3588.00';
+        paymentInfo.value = `- Payments are made via a credit/debit card.\n- Taxes depend on the address of the card added to the account: 37signals.com/policies/taxes.\n- If you’re tax-exempt, please send over your state tax exemption before the lump sum payment is made.\n- Terms of Service: 37signals.com/policies/terms`;
+      } else if (selectedPlan === 'proMonthly') {
+        price.value = '349.00';
+        paymentInfo.value = `- Payments are made via a credit/debit card.\n- Taxes depend on the address of the card added to the account: 37signals.com/policies/taxes.\n- If you’re tax-exempt, please send over your state tax exemption before the lump sum payment is made.\n- Terms of Service: 37signals.com/policies/terms`;
+      } else if (selectedPlan === 'plusMonthly') {
+        const users = parseInt(userCount.value, 10) || 1;
+        price.value = (users * 15).toFixed(2);
+        paymentInfo.value = `- Payments are made via a credit/debit card.\n- Taxes depend on the address of the card added to the account: 37signals.com/policies/taxes.\n- If you’re tax-exempt, please send over your state tax exemption before the lump sum payment is made.\n- Terms of Service: 37signals.com/policies/terms`;
+      } else if (selectedPlan === 'lumpSum') {
+        price.value = '';
+        paymentInfo.value = `- Payments are made via a credit/debit card.\n- A lump sum payment will credit your account with that amount. Our billing system will pull from that credit each month before ever charging the card on file.\n- The owner will receive a paid invoice at the point of the lump sum payment and each month after. All paid invoices can be found by any account owner in Adminland.\n- Taxes depend on the address of the card added to the account: 37signals.com/policies/taxes.\n- If you’re tax-exempt, please send over your state tax exemption before the lump sum payment is made.\n- Terms of Service: 37signals.com/policies/terms`;
+      } else if (selectedPlan === 'ach') {
+        price.value = '';
+        paymentInfo.value = `Payable to Wire Transfer\n\n37signals\n2045 W Grand Ave Ste B\nPMB 53289\nChicago, IL 60612\n\nAccount: 709576128\nRouting: 071000013\nSWIFT: CHASUS33\n\nJPMorgan Chase\n10 South Dearborn\nFloor 11\nChicago, IL 60603`;
+      }
+    }
+
+    document.getElementById('quote-form').addEventListener('submit', async function (e) {
+      e.preventDefault();
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+
+      const account = accountNumber.value;
+      const invoice = invoiceNumber.value;
+      const date = document.getElementById('date').value;
+      const due = document.getElementById('dueDate').value;
+      const name = document.getElementById('accountName').value;
+      const owner = document.getElementById('accountOwner').value;
+      const email = document.getElementById('email').value;
+      const planName = plan.options[plan.selectedIndex].text;
+      const priceVal = price.value;
+      const paymentText = paymentInfo.value;
+
+      doc.setFontSize(12);
+      doc.text(`Thanks for choosing ${planName}!`, 20, 20);
+      doc.text(`Invoice: ${invoice}    Account: ${account}`, 20, 30);
+      doc.text(`Date: ${date}    Account Name: ${name}`, 20, 40);
+      doc.text(`Due Date: ${due}    Account Owner: ${owner}`, 20, 50);
+      doc.text(`Email: ${email}`, 20, 60);
+
+      doc.setFontSize(16);
+      doc.text(`$${parseFloat(priceVal).toFixed(2)} USD`, 20, 75);
+      doc.setFontSize(12);
+      doc.text(`${planName}`, 20, 85);
+      doc.text(`- Includes unlimited users and projects.`, 20, 95);
+
+      const lines = doc.splitTextToSize(paymentText, 170);
+      doc.text(lines, 20, 110);
+
+      doc.save(`Basecamp_Quote_${invoice}.pdf`);
+    });
+  </script>
+</body>
+</html>
