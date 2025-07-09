@@ -179,13 +179,7 @@
   doc.text(priceLines[1], 105, y + lineHeight * 2, { align: 'center' });
   doc.text(priceLines[2], 105, y + lineHeight * 3, { align: 'center' });
   y += boxHeight + 6;
-  doc.setFont(undefined, 'normal');
-  doc.setFontSize(12);
-  doc.text(planName, 105, y, { align: 'center' }); y += 10;
-  doc.text(`- Includes unlimited users and projects.`, 105, y, { align: 'center' }); y += 10;
-  const priceBoxYEnd = y + 4;
-  doc.roundedRect(18, priceBoxYStart, 174, priceBoxYEnd - priceBoxYStart, 3, 3);
-  y += 10;
+  
 
   const lines = doc.splitTextToSize(paymentText, 170);
   const payBoxHeight = lines.length * 7 + 16;
